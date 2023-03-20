@@ -1,0 +1,36 @@
+
+{
+    "$schema": "http://iglucentral.com/schemas/com.snowplowanalytics.self-desc/schema/jsonschema/1-0-0#",
+    "self": {
+        "vendor": "com.snowplowanalytics",
+        "name": "github_metrics",
+        "format": "jsonschema",
+        "version": "1-0-0"
+    },
+    "description": "Metrics exported from the github traffic API",
+    "type": "object",
+    "properties": {
+        "metric_tstamp": {
+            "type": "string",
+            "format": "date-time"
+        },
+        "count": {
+            "type": "integer"
+        },
+        "uniques": {
+            "type": "integer"
+        },
+        "metric": {
+            "type": "string"
+        },
+        "value": {
+            "type": ["string", "null"]
+        },
+        "rank": {
+            "type": ["integer", "null"]
+        },
+        "repo": {
+            "type": "string"
+        }
+    }
+}
