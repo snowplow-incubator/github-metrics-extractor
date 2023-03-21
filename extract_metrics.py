@@ -97,7 +97,7 @@ def main():
         )
 
     # Write the data from the DataFrame to the table staging table
-        success, _, nrows, _ = write_pandas(con, df, 'metrics_stg', auto_create_table=True, quote_identifiers=False)
+        success, _, nrows, _ = write_pandas(con, df, 'metrics_stg', auto_create_table=True, quote_identifiers=False, overwrite=True)
 
         if success:
             print(f"Written {nrows} to `metrics_stg`")
@@ -118,7 +118,13 @@ def main():
 
         try:
             # there is a mergeInto function but it's more work than just writing the sql manually
-            merge = "merge into metrics t using metrics_stg s on t.metric = s.metric and t.timestamp = s.timestamp and t.repo = s.repo when not matched then insert (timestamp, count, uniques, metric, value, rank, repo) values (s.timestamp, s.count, s.uniques, s.metric, s.value, s.rank, s.repo)"
+            merge = """merge into metrics t using metrics_stg s
+                            on t.metric = s.metric
+                                and t.timestamp = s.timestamp
+                                and t.repo = s.repo
+                        when matched and t.metric in ('views', 'clones') then update set t.uniques = s.uniques, t.count = s.count
+                        when not matched then insert (timestamp, count, uniques, metric, value, rank, repo) values (s.timestamp, s.count, s.uniques, s.metric, s.value, s.rank, s.repo)
+                """
             connection.execute(merge)
         finally:
             connection.close()
