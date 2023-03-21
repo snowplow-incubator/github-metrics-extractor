@@ -1,3 +1,6 @@
-snowplow-tracker==0.13.0
 pandas==1.4.4
 requests==2.28.1
+snowflake==0.0.3
+snowflake_sqlalchemy==1.4.6
+SQLAlchemy==1.4.41
+snowflake-connector-python[pandas]==2.7.12
