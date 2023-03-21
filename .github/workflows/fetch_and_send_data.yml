@@ -35,4 +35,4 @@ jobs:
     - name: Update dbt docs
       run: |
         pip install -r utils/dbt_docs/requirements.txt
-        python extract_metrics.py 'Bearer ${{ secrets.GITHUB_TOKEN }}'
+        python extract_metrics.py '${{ secrets.ORG_TOKEN }}'
