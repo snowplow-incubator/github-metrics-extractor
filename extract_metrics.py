@@ -20,44 +20,61 @@ def github_get_traffic(username, repository_name, trafic_type = 'clones', header
 
 def main():
     repos = [
-        'dbt-snowplow-web',
-        'dbt-snowplow-mobile',
-        'dbt-snowplow-media-player',
-        'dbt-snowplow-utils',
-        'dbt-snowplow-fractribution',
-        'dbt-snowplow-ecommerce',
-        'dbt-snowplow-normalize',
+        ('snowplow', 'dbt-snowplow-web'),
+        ('snowplow', 'dbt-snowplow-mobile'),
+        ('snowplow', 'dbt-snowplow-media-player'),
+        ('snowplow', 'dbt-snowplow-utils'),
+        ('snowplow', 'dbt-snowplow-fractribution'),
+        ('snowplow', 'dbt-snowplow-ecommerce'),
+        ('snowplow', 'dbt-snowplow-normalize'),
+        ('snowplow', 'snowplow-tracking-cli'),
+        ('snowplow', 'snowplow-dotnet-tracker'),
+        ('snowplow', 'snowplow-golang-tracker'),
+        ('snowplow', 'snowplow-java-tracker'),
+        ('snowplow', 'snowplow-php-tracker'),
+        ('snowplow', 'snowplow-python-tracker'),
+        ('snowplow', 'snowplow-ruby-tracker'),
+        ('snowplow', 'snowplow-scala-tracker'),
+        ('snowplow', 'snowplow-unity-tracker'),
+        ('snowplow', 'snowplow-cpp-tracker'),
+        ('snowplow', 'snowplow-rust-tracker'),
+        ('snowplow', 'snowplow-lua-tracker'),
+        ('snowplow', 'snowplow-javascript-tracker'),
+        ('snowplow', 'snowplow-android-tracker'),
+        ('snowplow', 'snowplow-objc-tracker'),
+        # ('snowplow-incubator', 'snowplow-react-native-tracker'),
+        # ('snowplow-incubator', 'snowplow-roku-tracker'),
+        # ('snowplow-incubator', 'snowplow-flutter-tracker'),
         ]
 
     #Set your PAT key so you get the 5000 calls per hour for the github api
     # call with `token <YOUR_TOKEN> as cmd argument if using a local PAT key`
     headers = {'Authorization': f"{sys.argv[1]}"}
-    username = 'snowplow'
     df = pd.DataFrame()
     for repo in repos:
         # Clones
-        df_temp = pd.DataFrame.from_dict(github_get_traffic(username, repo, 'clones', headers)['clones'])
+        df_temp = pd.DataFrame.from_dict(github_get_traffic(repo[0], repo[1], 'clones', headers)['clones'])
         df_temp['metric'] = 'clones'
-        df_temp['repo'] = repo
+        df_temp['repo'] = repo[1]
         df = pd.concat([df, df_temp])
         # Popular paths
-        df_temp = pd.DataFrame.from_dict(github_get_traffic(username, repo, 'popular/paths', headers)).drop(columns=['title']).rename(columns={'path':'value'})
+        df_temp = pd.DataFrame.from_dict(github_get_traffic(repo[0], repo[1], 'popular/paths', headers)).drop(columns=['title']).rename(columns={'path':'value'})
         df_temp['metric'] = 'popular/paths'
         df_temp['timestamp'] = date.today().strftime("%Y-%m-%dT%H:%M:%SZ")
         df_temp['rank'] = range(1, len(df_temp.index) + 1)
-        df_temp['repo'] = repo
+        df_temp['repo'] = repo[1]
         df = pd.concat([df, df_temp])
         # Popular referrers
-        df_temp = pd.DataFrame.from_dict(github_get_traffic(username, repo, 'popular/referrers', headers)).rename(columns={'referrer':'value'})
+        df_temp = pd.DataFrame.from_dict(github_get_traffic(repo[0], repo[1], 'popular/referrers', headers)).rename(columns={'referrer':'value'})
         df_temp['metric'] = 'popular/referrers'
         df_temp['timestamp'] = date.today().strftime("%Y-%m-%dT%H:%M:%SZ")
         df_temp['rank'] = range(1, len(df_temp.index) + 1)
-        df_temp['repo'] = repo
+        df_temp['repo'] = repo[1]
         df = pd.concat([df, df_temp])
         # Views
-        df_temp = pd.DataFrame.from_dict(github_get_traffic(username, repo, 'views', headers)['views'])
+        df_temp = pd.DataFrame.from_dict(github_get_traffic(repo[0], repo[1], 'views', headers)['views'])
         df_temp['metric'] = 'views'
-        df_temp['repo'] = repo
+        df_temp['repo'] = repo[1]
         df = pd.concat([df, df_temp])
 
     # Are there better ways to do this? Yes, of course there are.
