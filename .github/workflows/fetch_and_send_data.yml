@@ -2,7 +2,6 @@ name: fetch-and-send-metrics
 
 on:
   workflow_dispatch:
-  schedule:
     - cron: "0 8 * * *"
 
 concurrency: metrics_fetch
@@ -19,7 +18,7 @@ env:
   SNOWFLAKE_SCHEMA: ${{ secrets.SNOWFLAKE_SCHEMA }}
 
 jobs:
-  dbt_docs:
+  send_metrics:
     runs-on: ubuntu-latest
 
     steps:
@@ -32,7 +31,7 @@ jobs:
         python-version: "3.9.x"
         cache: 'pip' # caching pip dependencies
 
-    - name: Update dbt docs
+    - name: Get and send metrics
       run: |
-        pip install -r utils/dbt_docs/requirements.txt
-        python extract_metrics.py '${{ secrets.ORG_TOKEN }}'
+        pip install -r ./requirements.txt
+        python extract_metrics.py 'Bearer ${{ secrets.ORG_TOKEN }}'
