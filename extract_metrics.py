@@ -1,12 +1,13 @@
 import requests
 import sys
 import pandas as pd
-from datetime import date
+from datetime import date, timedelta
 import os
 import snowflake.connector
 from snowflake.connector.pandas_tools import write_pandas
 from snowflake.sqlalchemy import URL
 from sqlalchemy import create_engine
+import pypistats
 
 def github_get_traffic(username, repository_name, trafic_type = 'clones', headers={}):
     headers = headers
@@ -17,6 +18,61 @@ def github_get_traffic(username, repository_name, trafic_type = 'clones', header
     data = r.json()
 
     return data
+
+def get_repo_stats(repo, headers):
+    df = pd.DataFrame()
+    # Clones
+    df_temp = pd.DataFrame.from_dict(github_get_traffic(repo[0], repo[1], 'clones', headers)['clones'])
+    df_temp['metric'] = 'clones'
+    df_temp['repo'] = repo[1]
+    df = pd.concat([df, df_temp])
+    # Popular paths
+    df_temp = pd.DataFrame.from_dict(github_get_traffic(repo[0], repo[1], 'popular/paths', headers)).drop(columns=['title']).rename(columns={'path':'value'})
+    df_temp['metric'] = 'popular/paths'
+    df_temp['timestamp'] = date.today().strftime("%Y-%m-%dT%H:%M:%SZ")
+    df_temp['rank'] = range(1, len(df_temp.index) + 1)
+    df_temp['repo'] = repo[1]
+    df = pd.concat([df, df_temp])
+    # Popular referrers
+    df_temp = pd.DataFrame.from_dict(github_get_traffic(repo[0], repo[1], 'popular/referrers', headers)).rename(columns={'referrer':'value'})
+    df_temp['metric'] = 'popular/referrers'
+    df_temp['timestamp'] = date.today().strftime("%Y-%m-%dT%H:%M:%SZ")
+    df_temp['rank'] = range(1, len(df_temp.index) + 1)
+    df_temp['repo'] = repo[1]
+    df = pd.concat([df, df_temp])
+    # Views
+    df_temp = pd.DataFrame.from_dict(github_get_traffic(repo[0], repo[1], 'views', headers)['views'])
+    df_temp['metric'] = 'views'
+    df_temp['repo'] = repo[1]
+    df = pd.concat([df, df_temp])
+
+    return df
+
+def get_python_tracker():
+    python_installs = pypistats.overall("snowplow-tracker", format="pandas", total = True, start_date = str(date.today() - timedelta(3)), mirrors=True)
+    python_installs['metric'] = 'installs'
+    python_installs['repo'] = 'snowplow-python-tracker'
+    python_installs['count'] = python_installs['downloads']
+    python_installs['uniques'] = python_installs['downloads']
+    python_installs['timestamp'] = python_installs['date']
+    python_installs = python_installs[['timestamp', 'count', 'uniques', 'repo', 'metric']]
+    python_installs = python_installs.iloc[:-1] # remove total row at the end
+
+    return python_installs
+
+def get_npm_package_stats(package= '', days = 3):
+    url = f'https://api.npmjs.org/downloads/range/{str(date.today() - timedelta(days))}:{str(date.today())}/{package}'
+    r = requests.get(url)
+    r.raise_for_status()
+    data = r.json()
+    df_temp = pd.DataFrame.from_dict(data['downloads'])
+    df_temp['timestamp'] = df_temp['day']
+    df_temp['repo'] = package
+    df_temp['metric'] = 'downloads'
+    df_temp['count'] = df_temp['downloads']
+    df_temp['uniques'] = df_temp['downloads']
+
+    return df_temp[['timestamp', 'count', 'uniques', 'repo', 'metric']]
 
 def main():
     repos = [
@@ -46,43 +102,64 @@ def main():
         # ('snowplow-incubator', 'snowplow-roku-tracker'),
         # ('snowplow-incubator', 'snowplow-flutter-tracker'),
         ]
+    npm_packages = ['@snowplow/react-native-tracker',
+                    '@snowplow/browser-plugin-ad-tracking',
+                    '@snowplow/browser-plugin-browser-features',
+                    '@snowplow/browser-plugin-client-hints',
+                    '@snowplow/browser-plugin-consent',
+                    '@snowplow/browser-plugin-ecommerce',
+                    '@snowplow/browser-plugin-enhanced-ecommerce',
+                    '@snowplow/browser-plugin-error-tracking',
+                    '@snowplow/browser-plugin-form-tracking',
+                    '@snowplow/browser-plugin-ga-cookies',
+                    '@snowplow/browser-plugin-geolocation',
+                    '@snowplow/browser-plugin-link-click-tracking',
+                    '@snowplow/browser-plugin-optimizely',
+                    '@snowplow/browser-plugin-optimizely-x',
+                    '@snowplow/browser-plugin-parrable',
+                    '@snowplow/browser-plugin-performance-timing',
+                    '@snowplow/browser-plugin-site-tracking',
+                    '@snowplow/browser-plugin-timezone',
+                    '@snowplow/browser-tracker',
+                    '@snowplow/browser-tracker-core',
+                    '@snowplow/javascript-tracker',
+                    '@snowplow/tracker-core',
+                    '@snowplow/browser-plugin-debugger',
+                    '@snowplow/node-tracker',
+                    '@snowplow/roku-tracker',
+                    '@snowplow/browser-plugin-media-tracking',
+                    '@snowplow/browser-plugin-youtube-tracking',
+                    '@snowplow/webview-tracker',
+                    '@snowplow/browser-plugin-enhanced-consent',
+                    '@snowplow/browser-plugin-snowplow-ecommerce',
+                    '@snowplow/browser-plugin-focalmeter']
 
     #Set your PAT key so you get the 5000 calls per hour for the github api
     # call with `token <YOUR_TOKEN> as cmd argument if using a local PAT key`
     headers = {'Authorization': f"{sys.argv[1]}"}
-    df = pd.DataFrame()
+    all_df = pd.DataFrame()
+
+    # Github traffic
     for repo in repos:
-        # Clones
-        df_temp = pd.DataFrame.from_dict(github_get_traffic(repo[0], repo[1], 'clones', headers)['clones'])
-        df_temp['metric'] = 'clones'
-        df_temp['repo'] = repo[1]
-        df = pd.concat([df, df_temp])
-        # Popular paths
-        df_temp = pd.DataFrame.from_dict(github_get_traffic(repo[0], repo[1], 'popular/paths', headers)).drop(columns=['title']).rename(columns={'path':'value'})
-        df_temp['metric'] = 'popular/paths'
-        df_temp['timestamp'] = date.today().strftime("%Y-%m-%dT%H:%M:%SZ")
-        df_temp['rank'] = range(1, len(df_temp.index) + 1)
-        df_temp['repo'] = repo[1]
-        df = pd.concat([df, df_temp])
-        # Popular referrers
-        df_temp = pd.DataFrame.from_dict(github_get_traffic(repo[0], repo[1], 'popular/referrers', headers)).rename(columns={'referrer':'value'})
-        df_temp['metric'] = 'popular/referrers'
-        df_temp['timestamp'] = date.today().strftime("%Y-%m-%dT%H:%M:%SZ")
-        df_temp['rank'] = range(1, len(df_temp.index) + 1)
-        df_temp['repo'] = repo[1]
-        df = pd.concat([df, df_temp])
-        # Views
-        df_temp = pd.DataFrame.from_dict(github_get_traffic(repo[0], repo[1], 'views', headers)['views'])
-        df_temp['metric'] = 'views'
-        df_temp['repo'] = repo[1]
-        df = pd.concat([df, df_temp])
+        print(f'Getting repo {repo[1]}')
+        df_temp = get_repo_stats(repo, headers)
+        all_df = pd.concat([all_df, df_temp])
+
+    # Python installs
+    all_df = pd.concat([all_df, get_python_tracker()])
+
+    # npm packages
+    for package in npm_packages:
+        print(f'Getting package {package}')
+        df_temp = get_npm_package_stats(package, 3)
+        all_df = pd.concat([all_df, df_temp])
 
     # Are there better ways to do this? Yes, of course there are.
     # Do I have more than a passing familiarity with pandas to know that way? No, I do not.
-    df = df.convert_dtypes()
-    df['timestamp'] = pd.to_datetime(df['timestamp'])
+    all_df = all_df.convert_dtypes()
+    all_df['timestamp'] = pd.to_datetime(all_df['timestamp'])
 
-    if len(df. index) > 0:
+    if len(all_df. index) > 0:
         con = snowflake.connector.connect(
             user = os.getenv('SNOWFLAKE_USER'),
             password = os.getenv('SNOWFLAKE_PASSWORD'),
@@ -97,7 +174,7 @@ def main():
         )
 
     # Write the data from the DataFrame to the table staging table
-        success, _, nrows, _ = write_pandas(con, df, 'metrics_stg', auto_create_table=True, quote_identifiers=False, overwrite=True)
+        success, _, nrows, _ = write_pandas(con, all_df, 'metrics_stg', auto_create_table=True, quote_identifiers=False, overwrite=True)
 
         if success:
             print(f"Written {nrows} to `metrics_stg`")
