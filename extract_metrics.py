@@ -48,8 +48,8 @@ def get_repo_stats(repo, headers):
 
     return df
 
-def get_python_tracker():
-    python_installs = pypistats.overall("snowplow-tracker", format="pandas", total = True, start_date = str(date.today() - timedelta(3)), mirrors=True)
+def get_python_tracker(days = 3):
+    python_installs = pypistats.overall("snowplow-tracker", format="pandas", total = True, start_date = str(date.today() - timedelta(days)), mirrors=True)
     python_installs['metric'] = 'installs'
     python_installs['repo'] = 'snowplow-python-tracker'
     python_installs['count'] = python_installs['downloads']
@@ -61,7 +61,7 @@ def get_python_tracker():
     return python_installs
 
 def get_npm_package_stats(package= '', days = 3):
-    url = f'https://api.npmjs.org/downloads/range/{str(date.today() - timedelta(days))}:{str(date.today())}/{package}'
+    url = f'https://api.npmjs.org/downloads/range/{str(date.today() - timedelta(days))}:{str(date.today() - timedelta(1))}/{package}'
     r = requests.get(url)
     r.raise_for_status()
     data = r.json()
@@ -146,7 +146,7 @@ def main():
         all_df = pd.concat([all_df, df_temp])
 
     # Python installs
-    all_df = pd.concat([all_df, get_python_tracker()])
+    all_df = pd.concat([all_df, get_python_tracker(3)])
 
     # npm packages
     for package in npm_packages:
@@ -199,7 +199,7 @@ def main():
                             on t.metric = s.metric
                                 and t.timestamp = s.timestamp
                                 and t.repo = s.repo
-                        when matched and t.metric in ('views', 'clones') then update set t.uniques = s.uniques, t.count = s.count
+                        when matched and t.metric in ('views', 'clones', 'downloads', 'installs') then update set t.uniques = s.uniques, t.count = s.count
                         when not matched then insert (timestamp, count, uniques, metric, value, rank, repo) values (s.timestamp, s.count, s.uniques, s.metric, s.value, s.rank, s.repo)
                 """
             connection.execute(merge)
