@@ -60,6 +60,21 @@ def get_python_tracker(days = 3):
 
     return python_installs
 
+def get_cratesio_stats(package= '', repo_name = 'snowplow-rust-tracker'):
+    url = f'https://crates.io/api/v1/crates/{package}/downloads'
+    r = requests.get(url)
+    r.raise_for_status()
+    data = r.json()
+    df_temp = pd.DataFrame.from_dict(data['version_downloads'])
+    df_temp = df_temp.groupby(['date'], as_index=False)['downloads'].sum()
+    df_temp['timestamp'] = df_temp['date']
+    df_temp['repo'] = repo_name
+    df_temp['metric'] = 'downloads'
+    df_temp['count'] = df_temp['downloads']
+    df_temp['uniques'] = df_temp['downloads']
+
+    return df_temp[['timestamp', 'count', 'uniques', 'repo', 'metric']]
+
 def get_npm_package_stats(package= '', days = 3):
     url = f'https://api.npmjs.org/downloads/range/{str(date.today() - timedelta(days))}:{str(date.today() - timedelta(1))}/{package}'
     r = requests.get(url)
@@ -147,6 +162,10 @@ def main():
 
     # Python installs
     all_df = pd.concat([all_df, get_python_tracker(3)])
+
+    # crate.io
+    all_df = pd.concat([all_df, get_cratesio_stats('snowplow_tracker', 'snowplow-rust-tracker')])
+
 
     # npm packages
     for package in npm_packages:
