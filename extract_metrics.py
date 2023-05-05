@@ -163,7 +163,7 @@ def main():
     # Python installs
     all_df = pd.concat([all_df, get_python_tracker(3)])
 
-    # crate.io
+    # crate.io fails on GH actions for some reason, I assume rate limiting.
     # all_df = pd.concat([all_df, get_cratesio_stats('snowplow_tracker', 'snowplow-rust-tracker')])
 
 
