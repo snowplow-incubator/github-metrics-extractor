@@ -164,7 +164,7 @@ def main():
     all_df = pd.concat([all_df, get_python_tracker(3)])
 
     # crate.io
-    all_df = pd.concat([all_df, get_cratesio_stats('snowplow_tracker', 'snowplow-rust-tracker')])
+    # all_df = pd.concat([all_df, get_cratesio_stats('snowplow_tracker', 'snowplow-rust-tracker')])
 
 
     # npm packages
