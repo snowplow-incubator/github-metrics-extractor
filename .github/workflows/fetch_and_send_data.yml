@@ -1,0 +1,38 @@
+name: fetch-and-send-metrics
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 8 * * *"
+
+concurrency: metrics_fetch
+
+env:
+
+  # Snowflake Connection
+  SNOWFLAKE_ACCOUNT: ${{ secrets.SNOWFLAKE_ACCOUNT }}
+  SNOWFLAKE_USER: ${{ secrets.SNOWFLAKE_USER }}
+  SNOWFLAKE_PASSWORD: ${{ secrets.SNOWFLAKE_PASSWORD }}
+  SNOWFLAKE_ROLE: ${{ secrets.SNOWFLAKE_USER_ROLE }}
+  SNOWFLAKE_DATABASE: ${{ secrets.SNOWFLAKE_DATABASE }}
+  SNOWFLAKE_WAREHOUSE: ${{ secrets.SNOWFLAKE_WAREHOUSE }}
+  SNOWFLAKE_SCHEMA: ${{ secrets.SNOWFLAKE_SCHEMA }}
+
+jobs:
+  send_metrics:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v3
+
+    - name: Python setup
+      uses: actions/setup-python@v4
+      with:
+        python-version: "3.9.x"
+        cache: 'pip' # caching pip dependencies
+
+    - name: Get and send metrics
+      run: |
+        pip install -r ./requirements.txt
+        python extract_metrics.py 'token ${{ secrets.PAT }}'
