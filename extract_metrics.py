@@ -22,29 +22,42 @@ def github_get_traffic(username, repository_name, trafic_type = 'clones', header
 def get_repo_stats(repo, headers):
     df = pd.DataFrame()
     # Clones
-    df_temp = pd.DataFrame.from_dict(github_get_traffic(repo[0], repo[1], 'clones', headers)['clones'])
-    df_temp['metric'] = 'clones'
-    df_temp['repo'] = repo[1]
-    df = pd.concat([df, df_temp])
+
+    try: # incase of no results over the 14 day window
+        df_temp = pd.DataFrame.from_dict(github_get_traffic(repo[0], repo[1], 'clones', headers)['clones'])
+        df_temp['metric'] = 'clones'
+        df_temp['repo'] = repo[1]
+        df = pd.concat([df, df_temp])
+    except:
+        pass
     # Popular paths
-    df_temp = pd.DataFrame.from_dict(github_get_traffic(repo[0], repo[1], 'popular/paths', headers)).drop(columns=['title']).rename(columns={'path':'value'})
-    df_temp['metric'] = 'popular/paths'
-    df_temp['timestamp'] = date.today().strftime("%Y-%m-%dT%H:%M:%SZ")
-    df_temp['rank'] = range(1, len(df_temp.index) + 1)
-    df_temp['repo'] = repo[1]
-    df = pd.concat([df, df_temp])
+    try:
+        df_temp = pd.DataFrame.from_dict(github_get_traffic(repo[0], repo[1], 'popular/paths', headers)).drop(columns=['title']).rename(columns={'path':'value'})
+        df_temp['metric'] = 'popular/paths'
+        df_temp['timestamp'] = date.today().strftime("%Y-%m-%dT%H:%M:%SZ")
+        df_temp['rank'] = range(1, len(df_temp.index) + 1)
+        df_temp['repo'] = repo[1]
+        df = pd.concat([df, df_temp])
+    except:
+        pass
     # Popular referrers
-    df_temp = pd.DataFrame.from_dict(github_get_traffic(repo[0], repo[1], 'popular/referrers', headers)).rename(columns={'referrer':'value'})
-    df_temp['metric'] = 'popular/referrers'
-    df_temp['timestamp'] = date.today().strftime("%Y-%m-%dT%H:%M:%SZ")
-    df_temp['rank'] = range(1, len(df_temp.index) + 1)
-    df_temp['repo'] = repo[1]
-    df = pd.concat([df, df_temp])
+    try:
+        df_temp = pd.DataFrame.from_dict(github_get_traffic(repo[0], repo[1], 'popular/referrers', headers)).rename(columns={'referrer':'value'})
+        df_temp['metric'] = 'popular/referrers'
+        df_temp['timestamp'] = date.today().strftime("%Y-%m-%dT%H:%M:%SZ")
+        df_temp['rank'] = range(1, len(df_temp.index) + 1)
+        df_temp['repo'] = repo[1]
+        df = pd.concat([df, df_temp])
+    except:
+        pass
     # Views
-    df_temp = pd.DataFrame.from_dict(github_get_traffic(repo[0], repo[1], 'views', headers)['views'])
-    df_temp['metric'] = 'views'
-    df_temp['repo'] = repo[1]
-    df = pd.concat([df, df_temp])
+    try:
+        df_temp = pd.DataFrame.from_dict(github_get_traffic(repo[0], repo[1], 'views', headers)['views'])
+        df_temp['metric'] = 'views'
+        df_temp['repo'] = repo[1]
+        df = pd.concat([df, df_temp])
+    except:
+        pass
 
     return df
 
@@ -113,9 +126,9 @@ def main():
         ('snowplow', 'snowplow-javascript-tracker'),
         ('snowplow', 'snowplow-android-tracker'),
         ('snowplow', 'snowplow-objc-tracker'),
-        # ('snowplow-incubator', 'snowplow-react-native-tracker'),
-        # ('snowplow-incubator', 'snowplow-roku-tracker'),
-        # ('snowplow-incubator', 'snowplow-flutter-tracker'),
+        ('snowplow-incubator', 'snowplow-react-native-tracker'),
+        ('snowplow-incubator', 'snowplow-roku-tracker'),
+        ('snowplow-incubator', 'snowplow-flutter-tracker'),
         ]
     npm_packages = ['@snowplow/react-native-tracker',
                     '@snowplow/browser-plugin-ad-tracking',
