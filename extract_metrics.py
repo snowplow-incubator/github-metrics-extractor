@@ -63,7 +63,7 @@ def get_repo_stats(repo, headers):
 
 def get_python_tracker(days = 3):
     python_installs = pypistats.overall("snowplow-tracker", format="pandas", total = True, start_date = str(date.today() - timedelta(days)), mirrors=True)
-    python_installs['metric'] = 'installs'
+    python_installs['metric'] = 'downloads'
     python_installs['repo'] = 'snowplow-python-tracker'
     python_installs['count'] = python_installs['downloads']
     python_installs['uniques'] = python_installs['downloads']
